@@ -1,0 +1,15 @@
+﻿<Page x:Class="File_transfer_application.ConnectPage"
+      xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+      xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+      xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+      xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+      xmlns:local="clr-namespace:File_transfer_application"
+      mc:Ignorable="d" 
+      d:DesignHeight="300" d:DesignWidth="300"
+      Title="ConnectPage">
+
+  <Grid>
+    <Button x:Name="connect" Content="Connect" HorizontalAlignment="Left" Margin="193,129,0,0" VerticalAlignment="Top" Width="75" Height="23" Click="connect_Click"/>
+    <TextBox x:Name="id_box" HorizontalAlignment="Left" Height="23" Margin="37,129,0,0" TextWrapping="Wrap" VerticalAlignment="Top" Width="151" Text="Enter targets ID"/>
+  </Grid>
+</Page>
