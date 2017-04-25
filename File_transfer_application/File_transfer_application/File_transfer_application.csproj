@@ -66,7 +66,9 @@
     <Compile Include="ConnectPage.xaml.cs">
       <DependentUpon>ConnectPage.xaml</DependentUpon>
     </Compile>
+    <Compile Include="DownloadRequest.cs" />
     <Compile Include="FileItem.cs" />
+    <Compile Include="FileMetadata.cs" />
     <Compile Include="SharePage.xaml.cs">
       <DependentUpon>SharePage.xaml</DependentUpon>
     </Compile>

@@ -5,31 +5,50 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Drawing;
 using System.IO;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace File_transfer_application
 {
     class FileItem
     {
         string _path;
-        Icon _ico;
+        Icon _icon;
+        public int id { get; set; }
 
-        public FileItem()
-        {
-
-        }
+        public FileItem() { }
 
         public FileItem(string path)
         {
             _path = path;
-            _ico = Icon.ExtractAssociatedIcon(path);
+            _icon = Icon.ExtractAssociatedIcon(path);
         }
 
-        public FileItem(string path, Icon icon)
+        private FileItem(string path, Icon icon)
         {
             _path = path;
-            _ico = icon;
+            _icon = icon;
         }
 
+        public string GetFileName()
+        {
+            return Path.GetFileNameWithoutExtension(_path);
+        }
+
+        public string GetFullPath()
+        {
+            return _path;
+        }
+
+        public ImageSource GetIcon()
+        {
+            using (Bitmap bmp = _icon.ToBitmap())
+            {
+                var stream = new MemoryStream();
+                bmp.Save(stream, System.Drawing.Imaging.ImageFormat.Png);
+                return BitmapFrame.Create(stream);
+            }
+        }
 
         public static FileItem ConvertToFileItem(byte[] byteArr)
         {
@@ -44,11 +63,9 @@ namespace File_transfer_application
         {
             byte[] bPath = Encoding.ASCII.GetBytes(_path);
             byte[] bPathSize = BitConverter.GetBytes(bPath.Length);
-            //byte[] bIcon = IconToBytes(_ico);
-            //byte[] bIconSize = BitConverter.GetBytes(bIcon.Length);
+            byte[] bIcon = IconToBytes(_icon);
 
-            //return bPathSize.Concat(bPath).Concat(bIconSize).Concat(bIcon).ToArray();
-            return bPathSize.Concat(bPath).ToArray();
+            return bPathSize.Concat(bPath).Concat(bIcon).ToArray();
         }
 
         private byte[] IconToBytes(Icon icon)

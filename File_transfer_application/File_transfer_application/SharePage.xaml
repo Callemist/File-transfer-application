@@ -8,31 +8,31 @@
       d:DesignHeight="300" d:DesignWidth="300"
       Title="SharePage">
 
-  <DockPanel Margin="10">
-    <StackPanel DockPanel.Dock="Right" Margin="10,0">
-      <StackPanel.Resources>
-        <Style TargetType="Button">
-          <Setter Property="Margin" Value="0,0,0,5" />
-        </Style>
-      </StackPanel.Resources>
-      <TextBlock FontWeight="Bold" Margin="0,0,0,10">ListBox selection</TextBlock>
-      <Button Name="btnDownloadItem" Click="btnDownloadItem_Click">Download</Button>
-      <Button Name="btnAddItem" Click="btnAddItem_Click">Add</Button>
-      <TextBox x:Name="tbFilePath" Height="23" TextWrapping="Wrap" Width="120"/>
-    </StackPanel>
-    <ListBox Name="lbfileList" HorizontalContentAlignment="Stretch" SelectionMode="Extended" SelectionChanged="lbfileList_SelectionChanged">
-      <ListBox.ItemTemplate>
-        <DataTemplate>
-          <Grid Margin="0,2">
-            <Grid.ColumnDefinitions>
-              <ColumnDefinition Width="*" />
-              <ColumnDefinition Width="100" />
-            </Grid.ColumnDefinitions>
-            <TextBlock Text="{Binding Path}" />
-            <!--<ProgressBar Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding Completion}" />-->
-          </Grid>
-        </DataTemplate>
-      </ListBox.ItemTemplate>
-    </ListBox>
-  </DockPanel>
+    <DockPanel Margin="10">
+        <StackPanel DockPanel.Dock="Right" Margin="10,0">
+            <StackPanel.Resources>
+                <Style TargetType="Button">
+                    <Setter Property="Margin" Value="0,0,0,5" />
+                </Style>
+            </StackPanel.Resources>
+            <TextBlock FontWeight="Bold" Margin="0,0,0,10">ListBox selection</TextBlock>
+            <Button Name="btnDownloadItem" Click="btnDownloadItem_Click">Download</Button>
+            <Button Name="btnAddItem" Click="btnAddItem_Click">Add</Button>
+            <TextBox x:Name="tbFilePath" Height="23" TextWrapping="Wrap" Width="120"/>
+        </StackPanel>
+        <ListBox Name="lbfileList" HorizontalContentAlignment="Stretch" SelectionMode="Extended" SelectionChanged="lbfileList_SelectionChanged">
+            <ListBox.ItemTemplate>
+                <DataTemplate>
+                    <Grid Margin="0,2">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="100" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Text="{Binding Path}" />
+                        <Image Source="{Binding ico}"/>
+                    </Grid>
+                </DataTemplate>
+            </ListBox.ItemTemplate>
+        </ListBox>
+    </DockPanel>
 </Page>

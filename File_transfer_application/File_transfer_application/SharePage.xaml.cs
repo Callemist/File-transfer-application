@@ -7,6 +7,7 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
 
 namespace File_transfer_application
@@ -16,7 +17,7 @@ namespace File_transfer_application
     /// </summary>
     public enum MessageTypes
     {
-        FileMetadata,
+        FileItem,
         File,
         FileDownloadRequest
     }
@@ -25,6 +26,7 @@ namespace File_transfer_application
     {
 
         Socket _connection;
+        List<FileItem> _fileItems = new List<FileItem>();
 
         public SharePage(Socket connection)
         {
@@ -46,26 +48,23 @@ namespace File_transfer_application
             //Listening for new data to be received
             while (true)
             {
-                byte[] buffer = new byte[9];
-                //Blocks the thread while waiting for data
-                //When data is received read the first 9 bytes
-                //The first 8 bytes contains the length of the total data, the 9th byte is the message type.
-                connection.Receive(buffer, 0, 9, SocketFlags.None);
-                byte messageType = buffer[8];
+                byte[] buffer = new byte[1];
+                connection.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+                byte messageType = buffer[0];
 
-                long length = BitConverter.ToInt64(buffer.Take(8).ToArray(), 0);
                 Console.WriteLine("Messagetype: " + (MessageTypes)messageType);
 
                 switch ((MessageTypes)messageType)
                 {
-                    case MessageTypes.FileMetadata:
-                        ReceieveFileMetadata(connection, length);
+                    case MessageTypes.FileItem:
+                        ReceieveFileItem(connection);
                         break;
                     case MessageTypes.File:
-                        ReceieveFile(connection, length);
+                        //ReceieveFile(connection);
                         break;
                     case MessageTypes.FileDownloadRequest:
-                        SendFile(connection, length);
+                        SendFileMetadata(connection);
+                        //SendFile(connection);
                         break;
                     default:
                         Console.WriteLine("eyy error");
@@ -74,34 +73,35 @@ namespace File_transfer_application
             }
         }
 
-        private void ReceieveFileMetadata(Socket connection, long length)
+        private void ReceieveFileItem(Socket connection)
         {
-            //Might need to run this in its own thread aswell.
-            byte[] data = new byte[0];
-            long totalDataReceived = 0;
+            byte[] buffer = new byte[8192];
+            int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
 
-            // Read data as chunks until all data has been read.
-            while (totalDataReceived < length)
-            {
-                byte[] buffer = new byte[2048];
+            byte[] recBuffer = new byte[received];
+            Array.Copy(buffer, recBuffer, received);
 
-                int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
-                totalDataReceived += received;
-                Console.WriteLine($"data received: {totalDataReceived}");
+            FileItem item = FileItem.ConvertToFileItem(recBuffer);
+            item.id = _fileItems.Count + 1;
+            _fileItems.Add(item);
 
-                byte[] recBuffer = new byte[received];
-                Array.Copy(buffer, recBuffer, received);
+            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbfileList.Items.Add(new FileItemView() { Path = item.GetFileName(), ico = item.GetIcon(), id = item.id })));
+        }
 
-                // Concat the read bytes onto the total data.
-                data = data.Concat(recBuffer).ToArray();
-            }
+        private void SendFileMetadata(Socket connection)
+        {
+            byte[] buffer = new byte[2048];
+            int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
 
-            string fileMetadata = Encoding.Default.GetString(data);
-            Console.WriteLine($"FileMetadata: {fileMetadata}");
+            byte[] recBuffer = new byte[received];
+            Array.Copy(buffer, recBuffer, received);
 
-            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbfileList.Items.Add(new TmpFileItem() { Path = fileMetadata })));
+            DownloadRequest dlr = DownloadRequest.ConvertToDownloadRequest(recBuffer);
+
+            //connection.Send()
 
         }
+
 
         private void ReceieveFile(Socket connection, long length)
         {
@@ -124,6 +124,7 @@ namespace File_transfer_application
                 byte[] recBuffer = new byte[received];
                 Array.Copy(buffer, recBuffer, received);
 
+                //should read from recbuffer i think TODO FIX IN THE FUTURE
                 fsWrite.Write(buffer, 0, received);
             }
 
@@ -131,6 +132,7 @@ namespace File_transfer_application
             fsWrite.Flush();
             fsWrite.Close();
         }
+
 
         private void SendFile(Socket connection, long length)
         {
@@ -196,29 +198,37 @@ namespace File_transfer_application
             }
         }
 
-        private void lbfileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        private void SendFileItem(string path)
         {
+            _connection.Send(new byte[] { (byte)MessageTypes.FileItem });
+            _connection.Send(new FileItem(path).ConvertToByteArry());
+        }
 
+        private void SendDownloadRequest(int id)
+        {
+            FileItem item = _fileItems.Find(i => i.id == id);
+            _connection.Send(new byte[] { (byte)MessageTypes.FileDownloadRequest });
+            _connection.Send(new DownloadRequest(item.GetFullPath()).ConvertToByteArry());
         }
 
         private void btnDownloadItem_Click(object sender, RoutedEventArgs e)
         {
             if (lbfileList.SelectedItem != null)
             {
-                byte[] data = Encoding.Default.GetBytes((lbfileList.SelectedItem as TmpFileItem).Path);
-                byte[] protocolHeader = TransferEncapsulator.GetProtocolHeader(data.Length, MessageTypes.FileDownloadRequest);
-                _connection.Send(protocolHeader);
-                _connection.Send(data);
+                Console.WriteLine((lbfileList.SelectedItem as FileItemView).id);
+                SendDownloadRequest((lbfileList.SelectedItem as FileItemView).id);
             }
         }
 
         private void btnAddItem_Click(object sender, RoutedEventArgs e)
         {
-            Console.WriteLine(tbFilePath.Text);
-            byte[] data = Encoding.Default.GetBytes(tbFilePath.Text);
-            byte[] protocolHeader = TransferEncapsulator.GetProtocolHeader(data.Length, MessageTypes.FileMetadata);
-            _connection.Send(protocolHeader);
-            _connection.Send(data);
+            //will removing the @ destory everything? nobody knows..
+            SendFileItem(@tbFilePath.Text);
+        }
+
+        private void lbfileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+
         }
 
         private string GetFileName(string fullPath)
@@ -241,9 +251,11 @@ namespace File_transfer_application
 
     }
 
-    public class TmpFileItem
+    public class FileItemView
     {
         public string Path { get; set; }
+        public ImageSource ico { get; set; }
+        public int id { get; set; }
     }
 
 }
