@@ -72,7 +72,7 @@
     <Compile Include="SharePage.xaml.cs">
       <DependentUpon>SharePage.xaml</DependentUpon>
     </Compile>
-    <Compile Include="TransferEncapsulator.cs" />
+    <Compile Include="Helpers.cs" />
     <Compile Include="StartPage.xaml.cs">
       <DependentUpon>StartPage.xaml</DependentUpon>
     </Compile>

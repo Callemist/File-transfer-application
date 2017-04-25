@@ -50,7 +50,7 @@ namespace File_transfer_application
             }
         }
 
-        public static FileItem ConvertToFileItem(byte[] byteArr)
+        public static FileItem ConvertToObject(byte[] byteArr)
         {
             int pathSize = BitConverter.ToInt32(byteArr, 0);
             string path = Encoding.ASCII.GetString(byteArr, 4, pathSize);

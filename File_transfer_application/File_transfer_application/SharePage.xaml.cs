@@ -60,11 +60,10 @@ namespace File_transfer_application
                         ReceieveFileItem(connection);
                         break;
                     case MessageTypes.File:
-                        //ReceieveFile(connection);
+                        ReceieveFile(connection);
                         break;
                     case MessageTypes.FileDownloadRequest:
-                        SendFileMetadata(connection);
-                        //SendFile(connection);
+                        ReceieveDownloadRequest(connection);
                         break;
                     default:
                         Console.WriteLine("eyy error");
@@ -75,98 +74,29 @@ namespace File_transfer_application
 
         private void ReceieveFileItem(Socket connection)
         {
-            byte[] buffer = new byte[8192];
-            int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
+            byte[] byteArr = Helpers.ReadParsableClasses(connection);
 
-            byte[] recBuffer = new byte[received];
-            Array.Copy(buffer, recBuffer, received);
-
-            FileItem item = FileItem.ConvertToFileItem(recBuffer);
+            FileItem item = FileItem.ConvertToObject(byteArr);
             item.id = _fileItems.Count + 1;
             _fileItems.Add(item);
 
             Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbfileList.Items.Add(new FileItemView() { Path = item.GetFileName(), ico = item.GetIcon(), id = item.id })));
         }
 
-        private void SendFileMetadata(Socket connection)
+        private void ReceieveDownloadRequest(Socket connection)
         {
-            byte[] buffer = new byte[2048];
-            int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
-
-            byte[] recBuffer = new byte[received];
-            Array.Copy(buffer, recBuffer, received);
-
-            DownloadRequest dlr = DownloadRequest.ConvertToDownloadRequest(recBuffer);
-
-            //connection.Send()
-
+            byte[] byteArr = Helpers.ReadParsableClasses(connection);
+            DownloadRequest dlr = DownloadRequest.ConvertToObject(byteArr);
+            SendFile(connection, dlr.FullPath);
         }
 
 
-        private void ReceieveFile(Socket connection, long length)
+        private void SendFile(Socket connection, string path)
         {
-            //Cant access ui componenets outside the ui thread
-            //Console.WriteLine("path before filestream write: " + (lbfileList.SelectedItem as FileItem).Path);
-            string finalPath = GetFileName(@"C:\school project\resources\image.PNG");
-            FileStream fsWrite = new FileStream(finalPath, FileMode.Create, FileAccess.Write);
+            _connection.Send(Helpers.GetProtocolHeader(new FileMetadata(path).ConvertToByteArry().Length, MessageTypes.File));
+            _connection.Send(new FileMetadata(path).ConvertToByteArry());
 
-            long totalDataReceived = 0;
-
-            // Read data as chunks until all data has been read.
-            while (totalDataReceived < length)
-            {
-                byte[] buffer = new byte[2048];
-
-                int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
-                totalDataReceived += received;
-                Console.WriteLine($"data received: {totalDataReceived}");
-
-                byte[] recBuffer = new byte[received];
-                Array.Copy(buffer, recBuffer, received);
-
-                //should read from recbuffer i think TODO FIX IN THE FUTURE
-                fsWrite.Write(buffer, 0, received);
-            }
-
-            Console.WriteLine($"total data receieved: {totalDataReceived}");
-            fsWrite.Flush();
-            fsWrite.Close();
-        }
-
-
-        private void SendFile(Socket connection, long length)
-        {
-            //Console.WriteLine("send file running");
-
-            byte[] data = new byte[0];
-            long totalDataReceived = 0;
-
-            //On a download request the message will contain the path to the wanted file this part reads it.
-            while (totalDataReceived < length)
-            {
-                byte[] buffer = new byte[2048];
-
-                int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
-                totalDataReceived += received;
-                Console.WriteLine($"data received: {totalDataReceived}");
-
-                byte[] recBuffer = new byte[received];
-                Array.Copy(buffer, recBuffer, received);
-
-                //Concat the read bytes onto the total data.
-                data = data.Concat(recBuffer).ToArray();
-            }
-
-            string path = Encoding.Default.GetString(data);
-            Console.WriteLine($"Path: {path}");
-
-            //Send back a protocolheader that let the program know that there is an incomming file and the files length(size)
-            byte[] protocolHeader = TransferEncapsulator.GetProtocolHeader(new FileInfo(@"C:\school project\resources\ca_code.PNG").Length, MessageTypes.File);
-            _connection.Send(protocolHeader);
-            //_connection.Send(data);
-
-            //Read the data from the disk and send it over the network
-            using (FileStream fs = new FileStream(@"C:\school project\resources\ca_code.PNG", FileMode.Open, FileAccess.Read))
+            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
 
                 //int bufferSize = 64 * 1024; this should be big cause reading from the harddrive cost a lot, but its to big to send over the network.
@@ -178,7 +108,6 @@ namespace File_transfer_application
                 while (true)
                 {
                     int readCount = fs.Read(buffer, 0, buffer.Length);
-                    totalDataReceived += readCount;
                     Console.WriteLine($"Read: {readCount} bytes from drive");
 
                     if (readCount <= 0)
@@ -188,8 +117,6 @@ namespace File_transfer_application
 
                     Console.WriteLine($"bytes: {readCount}");
 
-                    //network send
-                    //fsWrite.Write(buffer, 0, readCount);
                     totalSent += _connection.Send(buffer, readCount, SocketFlags.None);
                 }
 
@@ -198,16 +125,49 @@ namespace File_transfer_application
             }
         }
 
+        private void ReceieveFile(Socket connection)
+        {
+            byte[] byteArr = Helpers.ReadParsableClasses(connection);
+            FileMetadata metadata = FileMetadata.ConvertToObject(byteArr);
+
+            string finalPath = GetFileName(@"C:\testfile\" + metadata.Name + metadata.Extension);
+            FileStream fsWrite = new FileStream(finalPath, FileMode.Create, FileAccess.Write);
+
+            long totalDataReceived = 0;
+
+            while (totalDataReceived != metadata.FileSize)
+            {
+                int bufferSize = 4096;
+
+                if (metadata.FileSize - totalDataReceived < bufferSize)
+                {
+                    bufferSize = (int)(metadata.FileSize - totalDataReceived);
+                }
+
+                byte[] buffer = new byte[bufferSize];
+
+                int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
+                totalDataReceived += received;
+                Console.WriteLine($"file data received: {totalDataReceived}");
+
+                fsWrite.Write(buffer, 0, received);
+            }
+
+            Console.WriteLine($"total file data received: {totalDataReceived}");
+            fsWrite.Flush();
+            fsWrite.Close();
+        }
+
         private void SendFileItem(string path)
         {
-            _connection.Send(new byte[] { (byte)MessageTypes.FileItem });
+            _connection.Send(Helpers.GetProtocolHeader(new FileItem(path).ConvertToByteArry().Length, MessageTypes.FileItem));
             _connection.Send(new FileItem(path).ConvertToByteArry());
         }
 
         private void SendDownloadRequest(int id)
         {
             FileItem item = _fileItems.Find(i => i.id == id);
-            _connection.Send(new byte[] { (byte)MessageTypes.FileDownloadRequest });
+            _connection.Send(Helpers.GetProtocolHeader(new DownloadRequest(item.GetFullPath()).ConvertToByteArry().Length, MessageTypes.FileDownloadRequest));
             _connection.Send(new DownloadRequest(item.GetFullPath()).ConvertToByteArry());
         }
 

@@ -17,7 +17,7 @@ namespace File_transfer_application
             FullPath = path;
         }
 
-        public static DownloadRequest ConvertToDownloadRequest(byte[] byteArr)
+        public static DownloadRequest ConvertToObject(byte[] byteArr)
         {
             int pathSize = BitConverter.ToInt32(byteArr, 0);
             string path = Encoding.ASCII.GetString(byteArr, 4, pathSize);

@@ -9,27 +9,27 @@ namespace File_transfer_application
 {
     class FileMetadata
     {
-        long _size;
-        string _extension;
-        string _name;
+        public long FileSize { get; }
+        public string Extension { get; }
+        public string Name { get; }
 
         public FileMetadata() { }
 
         public FileMetadata(string path)
         {
-            _size = new FileInfo(path).Length;
-            _extension = Path.GetExtension(path);
-            _name = Path.GetFileNameWithoutExtension(path);
+            FileSize = new FileInfo(path).Length;
+            Extension = Path.GetExtension(path);
+            Name = Path.GetFileNameWithoutExtension(path);
         }
 
         private FileMetadata(long size, string extension, string name)
         {
-            _size = size;
-            _extension = extension;
-            _name = name;
+            FileSize = size;
+            Extension = extension;
+            Name = name;
         }
 
-        public static FileMetadata ConvertToFileMetadata(byte[] byteArr)
+        public static FileMetadata ConvertToObject(byte[] byteArr)
         {
             long fileSize = BitConverter.ToInt64(byteArr, 0);
             int extensionSize = BitConverter.ToInt32(byteArr, 8);
@@ -41,12 +41,12 @@ namespace File_transfer_application
 
         public byte[] ConvertToByteArry()
         {
-            byte[] bFileSize = BitConverter.GetBytes(_size);
-            byte[] bExtension = Encoding.ASCII.GetBytes(_extension);
+            byte[] bFileSize = BitConverter.GetBytes(FileSize);
+            byte[] bExtension = Encoding.ASCII.GetBytes(Extension);
             byte[] bExtensionSize = BitConverter.GetBytes(bExtension.Length);
-            byte[] bName = Encoding.ASCII.GetBytes(_name);
+            byte[] bName = Encoding.ASCII.GetBytes(Name);
 
-            return bFileSize.Concat(bExtension).Concat(bExtensionSize).Concat(bName).ToArray();
+            return bFileSize.Concat(bExtensionSize).Concat(bExtension).Concat(bName).ToArray();
         }
 
 
