@@ -7,13 +7,6 @@ using System.Text;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using System.Windows.Data;
-using System.Windows.Documents;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Media.Imaging;
-using System.Windows.Navigation;
-using System.Windows.Shapes;
 using System.Windows.Threading;
 
 namespace File_transfer_application
@@ -51,7 +44,7 @@ namespace File_transfer_application
         void ReceiveData(Socket connection)
         {
             //Listening for new data to be received
-            while(true)
+            while (true)
             {
                 byte[] buffer = new byte[9];
                 //Blocks the thread while waiting for data
@@ -63,7 +56,7 @@ namespace File_transfer_application
                 long length = BitConverter.ToInt64(buffer.Take(8).ToArray(), 0);
                 Console.WriteLine("Messagetype: " + (MessageTypes)messageType);
 
-                switch((MessageTypes)messageType)
+                switch ((MessageTypes)messageType)
                 {
                     case MessageTypes.FileMetadata:
                         ReceieveFileMetadata(connection, length);
@@ -88,7 +81,7 @@ namespace File_transfer_application
             long totalDataReceived = 0;
 
             // Read data as chunks until all data has been read.
-            while(totalDataReceived < length)
+            while (totalDataReceived < length)
             {
                 byte[] buffer = new byte[2048];
 
@@ -106,7 +99,7 @@ namespace File_transfer_application
             string fileMetadata = Encoding.Default.GetString(data);
             Console.WriteLine($"FileMetadata: {fileMetadata}");
 
-            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbfileList.Items.Add(new FileItem() { Path = fileMetadata })));
+            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbfileList.Items.Add(new TmpFileItem() { Path = fileMetadata })));
 
         }
 
@@ -114,12 +107,13 @@ namespace File_transfer_application
         {
             //Cant access ui componenets outside the ui thread
             //Console.WriteLine("path before filestream write: " + (lbfileList.SelectedItem as FileItem).Path);
-            FileStream fsWrite = new FileStream(@"D:\Programming\C#\Resources\Videos\feelsgoodman.MP4", FileMode.Create, FileAccess.Write);
+            string finalPath = GetFileName(@"C:\school project\resources\image.PNG");
+            FileStream fsWrite = new FileStream(finalPath, FileMode.Create, FileAccess.Write);
 
             long totalDataReceived = 0;
 
             // Read data as chunks until all data has been read.
-            while(totalDataReceived < length)
+            while (totalDataReceived < length)
             {
                 byte[] buffer = new byte[2048];
 
@@ -134,18 +128,19 @@ namespace File_transfer_application
             }
 
             Console.WriteLine($"total data receieved: {totalDataReceived}");
-
+            fsWrite.Flush();
+            fsWrite.Close();
         }
 
         private void SendFile(Socket connection, long length)
         {
-            Console.WriteLine("got to send file");
+            //Console.WriteLine("send file running");
 
             byte[] data = new byte[0];
             long totalDataReceived = 0;
 
             //On a download request the message will contain the path to the wanted file this part reads it.
-            while(totalDataReceived < length)
+            while (totalDataReceived < length)
             {
                 byte[] buffer = new byte[2048];
 
@@ -164,12 +159,12 @@ namespace File_transfer_application
             Console.WriteLine($"Path: {path}");
 
             //Send back a protocolheader that let the program know that there is an incomming file and the files length(size)
-            byte[] protocolHeader = TransferEncapsulator.GetProtocolHeader(new FileInfo(@"D:\Programming\C#\Resources\Videos\2015-01-02-1251-57.MP4").Length, MessageTypes.File);
+            byte[] protocolHeader = TransferEncapsulator.GetProtocolHeader(new FileInfo(@"C:\school project\resources\ca_code.PNG").Length, MessageTypes.File);
             _connection.Send(protocolHeader);
-            _connection.Send(data);
+            //_connection.Send(data);
 
             //Read the data from the disk and send it over the network
-            using(FileStream fs = new FileStream(@"D:\Programming\C#\Resources\Videos\2015-01-02-1251-57.MP4", FileMode.Open, FileAccess.Read))
+            using (FileStream fs = new FileStream(@"C:\school project\resources\ca_code.PNG", FileMode.Open, FileAccess.Read))
             {
 
                 //int bufferSize = 64 * 1024; this should be big cause reading from the harddrive cost a lot, but its to big to send over the network.
@@ -178,13 +173,13 @@ namespace File_transfer_application
                 byte[] buffer = new byte[bufferSize];
                 long totalSent = 0;
 
-                while(true)
+                while (true)
                 {
                     int readCount = fs.Read(buffer, 0, buffer.Length);
                     totalDataReceived += readCount;
                     Console.WriteLine($"Read: {readCount} bytes from drive");
 
-                    if(readCount <= 0)
+                    if (readCount <= 0)
                     {
                         break;
                     }
@@ -196,7 +191,7 @@ namespace File_transfer_application
                     totalSent += _connection.Send(buffer, readCount, SocketFlags.None);
                 }
 
-                Console.WriteLine($"totalRead: { totalSent }");
+                Console.WriteLine($"total data sent: { totalSent }");
 
             }
         }
@@ -208,9 +203,9 @@ namespace File_transfer_application
 
         private void btnDownloadItem_Click(object sender, RoutedEventArgs e)
         {
-            if(lbfileList.SelectedItem != null)
+            if (lbfileList.SelectedItem != null)
             {
-                byte[] data = Encoding.Default.GetBytes((lbfileList.SelectedItem as FileItem).Path);
+                byte[] data = Encoding.Default.GetBytes((lbfileList.SelectedItem as TmpFileItem).Path);
                 byte[] protocolHeader = TransferEncapsulator.GetProtocolHeader(data.Length, MessageTypes.FileDownloadRequest);
                 _connection.Send(protocolHeader);
                 _connection.Send(data);
@@ -225,9 +220,28 @@ namespace File_transfer_application
             _connection.Send(protocolHeader);
             _connection.Send(data);
         }
+
+        private string GetFileName(string fullPath)
+        {
+            int count = 1;
+
+            string fileNameOnly = Path.GetFileNameWithoutExtension(fullPath);
+            string extension = Path.GetExtension(fullPath);
+            string path = Path.GetDirectoryName(fullPath);
+            string newFullPath = fullPath;
+
+            while (File.Exists(newFullPath))
+            {
+                string tempFileName = string.Format("{0}({1})", fileNameOnly, count++);
+                newFullPath = Path.Combine(path, tempFileName + extension);
+            }
+
+            return newFullPath;
+        }
+
     }
 
-    public class FileItem
+    public class TmpFileItem
     {
         public string Path { get; set; }
     }
