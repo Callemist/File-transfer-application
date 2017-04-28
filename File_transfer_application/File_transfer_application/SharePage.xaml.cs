@@ -80,7 +80,7 @@ namespace File_transfer_application
             item.id = _fileItems.Count + 1;
             _fileItems.Add(item);
 
-            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbfileList.Items.Add(new FileItemView() { Path = item.GetFileName(), ico = item.GetIcon(), id = item.id })));
+            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbFileItems.Items.Add(new FileItemViewModel() { Path = item.GetFileName(), ico = item.GetIcon(), id = item.id })));
         }
 
         private void ReceieveDownloadRequest(Socket connection)
@@ -173,10 +173,10 @@ namespace File_transfer_application
 
         private void btnDownloadItem_Click(object sender, RoutedEventArgs e)
         {
-            if (lbfileList.SelectedItem != null)
+            if (lbFileItems.SelectedItem != null)
             {
-                Console.WriteLine((lbfileList.SelectedItem as FileItemView).id);
-                SendDownloadRequest((lbfileList.SelectedItem as FileItemView).id);
+                Console.WriteLine((lbFileItems.SelectedItem as FileItemViewModel).id);
+                SendDownloadRequest((lbFileItems.SelectedItem as FileItemViewModel).id);
             }
         }
 
@@ -184,11 +184,6 @@ namespace File_transfer_application
         {
             //will removing the @ destory everything? nobody knows..
             SendFileItem(@tbFilePath.Text);
-        }
-
-        private void lbfileList_SelectionChanged(object sender, SelectionChangedEventArgs e)
-        {
-
         }
 
         private string GetFileName(string fullPath)
@@ -211,7 +206,7 @@ namespace File_transfer_application
 
     }
 
-    public class FileItemView
+    public class FileItemViewModel
     {
         public string Path { get; set; }
         public ImageSource ico { get; set; }
