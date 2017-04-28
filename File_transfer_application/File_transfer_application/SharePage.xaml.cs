@@ -77,6 +77,7 @@ namespace File_transfer_application
             byte[] byteArr = Helpers.ReadParsableClasses(connection);
 
             FileItem item = FileItem.ConvertToObject(byteArr);
+            Console.WriteLine("Receieved file item: " + item.GetFileName());
             item.id = _fileItems.Count + 1;
             _fileItems.Add(item);
 
@@ -162,6 +163,7 @@ namespace File_transfer_application
         {
             _connection.Send(Helpers.GetProtocolHeader(new FileItem(path).ConvertToByteArry().Length, MessageTypes.FileItem));
             _connection.Send(new FileItem(path).ConvertToByteArry());
+            Console.WriteLine("sent file item: " + path);
         }
 
         private void SendDownloadRequest(int id)
@@ -183,6 +185,7 @@ namespace File_transfer_application
         private void btnAddItem_Click(object sender, RoutedEventArgs e)
         {
             //will removing the @ destory everything? nobody knows..
+            Console.WriteLine("added file");
             SendFileItem(@tbFilePath.Text);
         }
 
@@ -204,6 +207,18 @@ namespace File_transfer_application
             return newFullPath;
         }
 
+        private void lbFileItems_Drop(object sender, DragEventArgs e)
+        {
+            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            {
+                string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
+                foreach (string filePath in files)
+                {
+                    Console.WriteLine(filePath);
+                    SendFileItem(@filePath);
+                }
+            }
+        }
     }
 
     public class FileItemViewModel
