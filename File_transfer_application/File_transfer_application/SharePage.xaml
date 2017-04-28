@@ -40,7 +40,7 @@
             <Button Name="btnAddItem" Click="btnAddItem_Click">Add</Button>
             <TextBox x:Name="tbFilePath" Height="23" TextWrapping="Wrap" Width="120"/>
         </StackPanel>
-        <ListBox Name="lwFileItems" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
+        <ListBox Name="lbFileItems" ScrollViewer.HorizontalScrollBarVisibility="Disabled">
             <ListBox.ItemsPanel>
                 <ItemsPanelTemplate>
                     <WrapPanel/>
