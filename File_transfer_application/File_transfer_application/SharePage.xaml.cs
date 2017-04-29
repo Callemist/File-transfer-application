@@ -32,7 +32,6 @@ namespace File_transfer_application
         {
             _connection = connection;
             InitializeComponent();
-            //label.Content = connection.ToString();
             Networking(connection);
 
         }
@@ -42,19 +41,27 @@ namespace File_transfer_application
             var receivingTask = Task.Factory.StartNew(() => ReceiveData(connection));
         }
 
-        //this probably needs to moved into the methods to avoid reading wrong data.
         void ReceiveData(Socket connection)
         {
-            //Listening for new data to be received
-            while (true)
+            while(true)
             {
                 byte[] buffer = new byte[1];
-                connection.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+
+                try
+                {
+                    connection.Receive(buffer, 0, buffer.Length, SocketFlags.None);
+                }
+                catch(Exception ex)
+                {
+                    //Console.WriteLine("Receive type error" + ex.Message);
+                    Console.WriteLine("Receive type error: " + ex);
+                }
+
                 byte messageType = buffer[0];
 
                 Console.WriteLine("Messagetype: " + (MessageTypes)messageType);
 
-                switch ((MessageTypes)messageType)
+                switch((MessageTypes)messageType)
                 {
                     case MessageTypes.FileItem:
                         ReceieveFileItem(connection);
@@ -97,7 +104,7 @@ namespace File_transfer_application
             _connection.Send(Helpers.GetProtocolHeader(new FileMetadata(path).ConvertToByteArry().Length, MessageTypes.File));
             _connection.Send(new FileMetadata(path).ConvertToByteArry());
 
-            using (FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
+            using(FileStream fs = new FileStream(path, FileMode.Open, FileAccess.Read))
             {
 
                 //int bufferSize = 64 * 1024; this should be big cause reading from the harddrive cost a lot, but its to big to send over the network.
@@ -106,12 +113,12 @@ namespace File_transfer_application
                 byte[] buffer = new byte[bufferSize];
                 long totalSent = 0;
 
-                while (true)
+                while(true)
                 {
                     int readCount = fs.Read(buffer, 0, buffer.Length);
                     Console.WriteLine($"Read: {readCount} bytes from drive");
 
-                    if (readCount <= 0)
+                    if(readCount <= 0)
                     {
                         break;
                     }
@@ -131,16 +138,16 @@ namespace File_transfer_application
             byte[] byteArr = Helpers.ReadParsableClasses(connection);
             FileMetadata metadata = FileMetadata.ConvertToObject(byteArr);
 
-            string finalPath = GetFileName(@"C:\testfile\" + metadata.Name + metadata.Extension);
+            string finalPath = GetFileName(@"D:\testfile\" + metadata.Name + metadata.Extension);
             FileStream fsWrite = new FileStream(finalPath, FileMode.Create, FileAccess.Write);
 
             long totalDataReceived = 0;
 
-            while (totalDataReceived != metadata.FileSize)
+            while(totalDataReceived != metadata.FileSize)
             {
                 int bufferSize = 4096;
 
-                if (metadata.FileSize - totalDataReceived < bufferSize)
+                if(metadata.FileSize - totalDataReceived < bufferSize)
                 {
                     bufferSize = (int)(metadata.FileSize - totalDataReceived);
                 }
@@ -161,8 +168,27 @@ namespace File_transfer_application
 
         private void SendFileItem(string path)
         {
-            _connection.Send(Helpers.GetProtocolHeader(new FileItem(path).ConvertToByteArry().Length, MessageTypes.FileItem));
-            _connection.Send(new FileItem(path).ConvertToByteArry());
+            try
+            {
+                _connection.Send(Helpers.GetProtocolHeader(new FileItem(path).ConvertToByteArry().Length, MessageTypes.FileItem));
+            }
+            catch(Exception ex)
+            {
+
+                Console.WriteLine("Send fileitem header error: " + ex);
+            }
+
+            try
+            {
+                _connection.Send(new FileItem(path).ConvertToByteArry());
+            }
+            catch(Exception ex)
+            {
+
+                Console.WriteLine("Send fileitem error: " + ex);
+            }
+
+            
             Console.WriteLine("sent file item: " + path);
         }
 
@@ -175,7 +201,7 @@ namespace File_transfer_application
 
         private void btnDownloadItem_Click(object sender, RoutedEventArgs e)
         {
-            if (lbFileItems.SelectedItem != null)
+            if(lbFileItems.SelectedItem != null)
             {
                 Console.WriteLine((lbFileItems.SelectedItem as FileItemViewModel).id);
                 SendDownloadRequest((lbFileItems.SelectedItem as FileItemViewModel).id);
@@ -198,7 +224,7 @@ namespace File_transfer_application
             string path = Path.GetDirectoryName(fullPath);
             string newFullPath = fullPath;
 
-            while (File.Exists(newFullPath))
+            while(File.Exists(newFullPath))
             {
                 string tempFileName = string.Format("{0}({1})", fileNameOnly, count++);
                 newFullPath = Path.Combine(path, tempFileName + extension);
@@ -209,10 +235,10 @@ namespace File_transfer_application
 
         private void lbFileItems_Drop(object sender, DragEventArgs e)
         {
-            if (e.Data.GetDataPresent(DataFormats.FileDrop))
+            if(e.Data.GetDataPresent(DataFormats.FileDrop))
             {
                 string[] files = (string[])e.Data.GetData(DataFormats.FileDrop);
-                foreach (string filePath in files)
+                foreach(string filePath in files)
                 {
                     Console.WriteLine(filePath);
                     SendFileItem(@filePath);

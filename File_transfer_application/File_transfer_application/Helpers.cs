@@ -19,7 +19,16 @@ namespace File_transfer_application
         public static byte[] ReadParsableClasses(Socket connection)
         {
             byte[] sizeBuffer = new byte[8];
-            connection.Receive(sizeBuffer, 0, sizeBuffer.Length, SocketFlags.None);
+
+            try
+            {
+                connection.Receive(sizeBuffer, 0, sizeBuffer.Length, SocketFlags.None);
+            }
+            catch(Exception ex)
+            {
+
+                Console.WriteLine("Read size bytes error: " + ex);
+            }
 
             long length = BitConverter.ToInt64(sizeBuffer, 0);
 
@@ -27,18 +36,28 @@ namespace File_transfer_application
             long totalDataReceived = 0;
 
 
-            while (totalDataReceived != length)
+            while(totalDataReceived != length)
             {
                 int bufferSize = 4096;
 
-                if (length - totalDataReceived < bufferSize)
+                if(length - totalDataReceived < bufferSize)
                 {
                     bufferSize = (int)(length - totalDataReceived);
                 }
 
                 byte[] buffer = new byte[bufferSize];
+                int received;
 
-                int received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
+                try
+                {
+                    received = connection.Receive(buffer, buffer.Length, SocketFlags.None);
+                }
+                catch(Exception ex)
+                {
+                    received = 0;
+                    Console.WriteLine("Read parsable class error: " + ex);
+                }
+
                 totalDataReceived += received;
                 Console.WriteLine($"Parsable class data received: {totalDataReceived}");
 
