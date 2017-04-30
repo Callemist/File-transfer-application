@@ -32,6 +32,9 @@ namespace File_transfer_application
         public SharePage(Socket connection)
         {
             _connection = connection;
+            //Console.WriteLine("Socket available: " + connection.Available);
+            Console.WriteLine("Socket local endpoint: " + connection.LocalEndPoint);
+            Console.WriteLine("Socket remote endpoint: " + connection.RemoteEndPoint);
             InitializeComponent();
             NetworkEvent nEvent = new NetworkEvent();
             nEvent.NetworkUpdate += (object sender, NetworkEventArgs args) => AddFileItem(args.item);

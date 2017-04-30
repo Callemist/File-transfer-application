@@ -46,12 +46,14 @@ namespace File_transfer_application
             //This wont run until it have received info from the server. To initiate this send a request to the server containing the identite of the target peer.
             IPEndPoint[] targetPeerEndpoints = GetEndpoints(serverSocket);
 
+            Console.WriteLine("TargetpeerEndpoint: " + targetPeerEndpoints[0].Port);
+
             Console.WriteLine("connect task one started");
             var privateEndPointSocketTask = Task<Socket>.Factory.StartNew(() => ConnectToTargetPeer(targetPeerEndpoints[0]));
-            Console.WriteLine("connect task two started");
-            var publiceEndPointSocketTask = Task<Socket>.Factory.StartNew(() => ConnectToTargetPeer(targetPeerEndpoints[1]));
+            //Console.WriteLine("connect task two started");
+            //var publiceEndPointSocketTask = Task<Socket>.Factory.StartNew(() => ConnectToTargetPeer(targetPeerEndpoints[1]));
 
-            Task<Socket>[] tasks = new Task<Socket>[] { listeningSocketTask, privateEndPointSocketTask, publiceEndPointSocketTask };
+            Task<Socket>[] tasks = new Task<Socket>[] { listeningSocketTask, privateEndPointSocketTask };
 
             int i = Task.WaitAny(tasks);
             Task<Socket> completedTask = tasks[i];
@@ -105,15 +107,17 @@ namespace File_transfer_application
 
         private IPEndPoint[] GetTargetPeerEndpoints(Socket serverSocket)
         {
+            Console.WriteLine("getting targetendpoints..");
             byte[] _buffer = new byte[1024];
 
             serverSocket.Receive(_buffer);
             int privatePort = BitConverter.ToInt32(_buffer, 0);
+            Console.WriteLine("server private endpoint response: " + privatePort);
 
 
             IPEndPoint[] arr = new IPEndPoint[2];
             arr[0] = new IPEndPoint(IPAddress.Parse("127.0.0.1"), privatePort);
-            arr[1] = new IPEndPoint(IPAddress.Parse("127.0.0.1"), privatePort);
+            //arr[1] = new IPEndPoint(IPAddress.Parse("127.0.0.1"), privatePort);
 
 
             return arr;
