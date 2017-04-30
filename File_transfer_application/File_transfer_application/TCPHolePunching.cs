@@ -19,7 +19,7 @@ namespace File_transfer_application
             // Make the tcp port reusable.
             serverSocket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
 
-            serverSocket.Connect(IPAddress.Parse("127.0.0.1"), 3333);
+            serverSocket.Connect(IPAddress.Parse("192.168.1.64"), 3333);
 
             // Get the local ip and port that the peer uses to communicate with the rendezvous server.
             IPEndPoint localEndPoint = (IPEndPoint)serverSocket.LocalEndPoint;
