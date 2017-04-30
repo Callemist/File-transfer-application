@@ -24,14 +24,12 @@ namespace dummy_tcp_stun_server
                 Socket client = sSocket.Accept();
                 Console.WriteLine($"client connected at {client.RemoteEndPoint.ToString()}");
 
-                byte[] buffer = new byte[4];
+                byte[] arr = helpers.ReadParsableClasses(client);
+                EndpointPair epp = EndpointPair.ConvertToObject(arr);
 
-                client.Receive(buffer);
+                Console.WriteLine($"client private port: {epp.Port} address: {epp.Address}");
 
-                int port = BitConverter.ToInt32(buffer, 0);
-                Console.WriteLine($"clients private port is: {port}");
-
-                clients.Add(new Client() { socket = client, privatePort = port });
+                clients.Add(new Client() { socket = client, EpPair = epp });
             }
 
 
@@ -41,13 +39,23 @@ namespace dummy_tcp_stun_server
             clients[0].socket.Receive(_buffer);
             Console.WriteLine("Init command received from client 0");
 
-            _buffer = BitConverter.GetBytes(clients[0].privatePort);
+            //_buffer = BitConverter.GetBytes(clients[0].privatePort);
+            //clients[1].socket.Send(_buffer);
 
-            clients[1].socket.Send(_buffer);
+            //_buffer = BitConverter.GetBytes(clients[1].privatePort);
 
-            _buffer = BitConverter.GetBytes(clients[1].privatePort);
+            //clients[0].socket.Send(_buffer);
 
-            clients[0].socket.Send(_buffer);
+
+            byte[] bArrOne = clients[0].EpPair.ConvertToByteArry();
+            long lengthOne = bArrOne.Length;
+            clients[1].socket.Send(BitConverter.GetBytes(lengthOne));
+            clients[1].socket.Send(bArrOne);
+
+            byte[] bArrTwo = clients[1].EpPair.ConvertToByteArry();
+            long lengthTwo = bArrTwo.Length;
+            clients[0].socket.Send(BitConverter.GetBytes(lengthTwo));
+            clients[0].socket.Send(bArrTwo);
 
 
             Console.ReadLine();
@@ -56,7 +64,7 @@ namespace dummy_tcp_stun_server
     class Client
     {
         public Socket socket { get; set; }
-        public int privatePort { get; set; }
+        public EndpointPair EpPair { get; set; }
     }
 
 }

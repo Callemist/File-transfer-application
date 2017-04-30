@@ -24,10 +24,10 @@ namespace File_transfer_application
             // Get the local ip and port that the peer uses to communicate with the rendezvous server.
             IPEndPoint localEndPoint = (IPEndPoint)serverSocket.LocalEndPoint;
 
-            // Send the private endpoint as a string to the server (send object in the future?).
-            // Alos need to add an identifier here, to send to the server together with the privat endpoint.
-            byte[] _buffer = BitConverter.GetBytes(localEndPoint.Port);
-            serverSocket.Send(_buffer);
+            EndpointPair ep = new EndpointPair(localEndPoint.Port, localEndPoint.Address.ToString());
+            long length = ep.ConvertToByteArry().Length;
+            serverSocket.Send(BitConverter.GetBytes(length));
+            serverSocket.Send(ep.ConvertToByteArry());
 
             return serverSocket;
         }
@@ -108,17 +108,18 @@ namespace File_transfer_application
         private IPEndPoint[] GetTargetPeerEndpoints(Socket serverSocket)
         {
             Console.WriteLine("getting targetendpoints..");
-            byte[] _buffer = new byte[1024];
+            //byte[] _buffer = new byte[1024];
 
-            serverSocket.Receive(_buffer);
-            int privatePort = BitConverter.ToInt32(_buffer, 0);
-            Console.WriteLine("server private endpoint response: " + privatePort);
+            //serverSocket.Receive(_buffer);
+            //int privatePort = BitConverter.ToInt32(_buffer, 0);
+            //Console.WriteLine("server private endpoint response: " + privatePort);
 
+            byte[] bArr = Helpers.ReadParsableClasses(serverSocket);
+            EndpointPair ep = EndpointPair.ConvertToObject(bArr);
 
             IPEndPoint[] arr = new IPEndPoint[2];
-            arr[0] = new IPEndPoint(IPAddress.Parse("127.0.0.1"), privatePort);
+            arr[0] = new IPEndPoint(IPAddress.Parse(ep.Address), ep.Port);
             //arr[1] = new IPEndPoint(IPAddress.Parse("127.0.0.1"), privatePort);
-
 
             return arr;
         }
