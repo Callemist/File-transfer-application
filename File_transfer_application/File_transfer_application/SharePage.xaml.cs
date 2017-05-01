@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -24,10 +25,9 @@ namespace File_transfer_application
 
     public partial class SharePage : Page
     {
-
         Socket _connection;
         List<FileItem> _fileItems = new List<FileItem>();
-
+        List<FileItem> sharedItems = new List<FileItem>();
 
         public SharePage(Socket connection)
         {
@@ -38,6 +38,7 @@ namespace File_transfer_application
             InitializeComponent();
             NetworkEvent nEvent = new NetworkEvent();
             nEvent.NetworkUpdate += (object sender, NetworkEventArgs args) => AddFileItem(args.item);
+            nEvent.DownloadProgressUpdate += (object sender, NetworkEventArgs args) => UpdateProgressBar(args.percentage);
             var receivingTask = Task.Factory.StartNew(() => ReceieveNetworkData.ReceiveData(connection, nEvent));
 
         }
@@ -47,6 +48,11 @@ namespace File_transfer_application
             item.id = _fileItems.Count + 1;
             _fileItems.Add(item);
             Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => lbFileItems.Items.Add(new FileItemViewModel() { Path = item.GetFileName(), ico = item.GetIcon(), id = item.id })));
+        }
+
+        private void UpdateProgressBar(int percentage)
+        {
+            Application.Current.Dispatcher.BeginInvoke(DispatcherPriority.Normal, new Action(() => pbDownloadProgressBar.Value = percentage == 100 ? 0 : percentage));
         }
 
         private void btnDownloadItem_Click(object sender, RoutedEventArgs e)
@@ -60,9 +66,13 @@ namespace File_transfer_application
 
         private void btnAddItem_Click(object sender, RoutedEventArgs e)
         {
-            //will removing the @ destory everything? nobody knows..
-            Console.WriteLine("added file");
-            SendNetworkData.SendFileItem(_connection, @tbFilePath.Text);
+            OpenFileDialog openFileDialog = new OpenFileDialog();
+            if(openFileDialog.ShowDialog() == true)
+            {
+                AddSharedItem(openFileDialog.FileName);
+                SendNetworkData.SendFileItem(_connection, openFileDialog.FileName);
+            }
+
         }
 
         private void lbFileItems_Drop(object sender, DragEventArgs e)
@@ -73,10 +83,18 @@ namespace File_transfer_application
                 foreach(string filePath in files)
                 {
                     Console.WriteLine(filePath);
+                    AddSharedItem(filePath);
                     SendNetworkData.SendFileItem(_connection, filePath);
                 }
             }
         }
+
+        private void AddSharedItem(string path)
+        {
+            FileItem item = new FileItem(path);
+            lbSharedItems.Items.Add(new FileItemViewModel() { Path = item.GetFileName(), ico = item.GetIcon() });
+        }
+
     }
 
     class FileItemViewModel

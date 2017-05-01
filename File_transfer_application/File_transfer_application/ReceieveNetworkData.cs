@@ -37,7 +37,7 @@ namespace File_transfer_application
                         ReceieveFileItem(connection, nEvent);
                         break;
                     case MessageTypes.File:
-                        ReceieveFile(connection);
+                        ReceieveFile(connection, nEvent);
                         break;
                     case MessageTypes.FileDownloadRequest:
                         ReceieveDownloadRequest(connection);
@@ -67,7 +67,7 @@ namespace File_transfer_application
         }
 
 
-        private static void ReceieveFile(Socket connection)
+        private static void ReceieveFile(Socket connection, NetworkEvent nEvent)
         {
             byte[] byteArr = Helpers.ReadParsableClasses(connection);
             FileMetadata metadata = FileMetadata.ConvertToObject(byteArr);
@@ -92,12 +92,17 @@ namespace File_transfer_application
                 totalDataReceived += received;
                 Console.WriteLine($"file data received: {totalDataReceived}");
 
+                nEvent.DownloadInProgress((int)(((double)totalDataReceived / metadata.FileSize) * 100));
+
                 fsWrite.Write(buffer, 0, received);
             }
 
             Console.WriteLine($"total file data received: {totalDataReceived}");
             fsWrite.Flush();
             fsWrite.Close();
+
+            nEvent.DownloadInProgress(100);
+
         }
 
         private static string GetFileName(string fullPath)

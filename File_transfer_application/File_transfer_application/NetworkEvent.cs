@@ -10,14 +10,20 @@ namespace File_transfer_application
     class NetworkEvent
     {
         public event NetworkEventHandler NetworkUpdate;
+        public event NetworkEventHandler DownloadProgressUpdate;
         public void ReceievedFileItem(FileItem receievedItem)
         {
             NetworkUpdate(this, new NetworkEventArgs { item = receievedItem });
+        }
+        public void DownloadInProgress(int p)
+        {
+            DownloadProgressUpdate(this, new NetworkEventArgs { percentage = p });
         }
     }
 
     class NetworkEventArgs : EventArgs
     {
         public FileItem item { get; set; }
+        public int percentage { get; set; }
     }
 }

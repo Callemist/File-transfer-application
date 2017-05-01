@@ -32,7 +32,7 @@ namespace File_transfer_application
 
         public string GetFileName()
         {
-            return Path.GetFileNameWithoutExtension(_path);
+            return Path.GetFileName(_path);
         }
 
         public string GetFullPath()
